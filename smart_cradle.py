@@ -1,4 +1,5 @@
 import time
+from urllib.parse import urlparse
 import random
 import board
 import adafruit_dht
@@ -10,9 +11,21 @@ import os
 
 # ------------------ CONFIG ------------------
 
-PC_IP = "192.168.1.73"
-AUDIO_UPLOAD_URL = f"http://{PC_IP}/smart_cradle/api/upload_audio.php"
-DATA_UPLOAD_URL = f"http://{PC_IP}/smart_cradle/api/receive_data.php"
+PC_IP = "https://www.zolilabs.com"  # Can be domain or full URL
+
+def normalize_base_url(base: str) -> str:
+    parsed = urlparse(base)
+    if parsed.scheme and parsed.netloc:
+        base_url = f"{parsed.scheme}://{parsed.netloc}"
+    else:
+        base = base.strip().rstrip('/')
+        base_url = f"https://{base}"  # default to HTTPS
+    return base_url.rstrip('/')
+
+BASE_URL = normalize_base_url(PC_IP)
+print(f"Using server base URL: {BASE_URL}")
+AUDIO_UPLOAD_URL = f"{BASE_URL}/smart_cradle/api/upload_audio.php"
+DATA_UPLOAD_URL = f"{BASE_URL}/smart_cradle/api/receive_data.php"
 
 AUDIO_WAV = "/tmp/cry.wav"
 AUDIO_MP3 = "/tmp/cry.mp3"
