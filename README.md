@@ -267,6 +267,288 @@ Result
 ✔ Correct °C symbol displayed
 
 
+                                         📦 Weighing System Module (Raspberry Pi 5 + HX711 + I2C LCD)
+==================================================================================================================================================
+
+1️⃣ Objective
+
+This module adds a reliable digital weighing function to the Raspberry Pi 5 using:
+
+20kg Load Cell
+
+HX711 24-bit ADC amplifier
+
+I2C LCD display
+
+Kalman filtering for stable readings
+
+The goal is to:
+
+Accurately measure weight in kilograms
+
+Provide stable filtered readings
+
+Support calibration using a known weight
+
+Run fully inside a Python virtual environment (cradlex_env)
+
+Be compatible with Raspberry Pi 5 (using lgpio, not RPi.GPIO)
+
+The system is designed for workshop/small-business grade reliability, not hobby-level testing.
+
+2️⃣ Hardware Wiring
+HX711 → Raspberry Pi 5 (BCM Numbering)
+HX711 Pin	Raspberry Pi 5
+DT (DOUT)	GPIO 5
+SCK	GPIO 6
+VCC	5V
+GND	GND
+
+Important Notes:
+
+BCM numbering is used.
+
+Ensure common ground.
+
+Load cell must be mechanically fixed.
+
+Allow 5–10 minutes warm-up before calibration.
+
+3️⃣ Virtual Environment Setup
+
+Activate environment:
+
+source cradlex_env/bin/activate
+
+
+Install required libraries:
+
+pip install lgpio numpy pyyaml smbus2 RPLCD
+
+
+System-level dependency:
+
+sudo apt install python3-smbus i2c-tools
+
+4️⃣ Calibration Procedure (calibrate.py)
+Purpose
+
+Calibration determines:
+
+zero_offset
+
+calibration_factor
+
+These values convert raw HX711 counts into kilograms.
+
+How It Works
+
+User removes all weight → system measures raw zero value.
+
+User places a known weight → system measures span.
+
+Calibration factor is computed:
+
+calibration_factor = (span_raw - zero_raw) / known_weight
+
+
+Values are saved into:
+
+config.yaml
+
+How To Run
+python3 calibrate.py
+
+Steps:
+
+Remove all weight → press Enter
+
+Enter known weight in kg (e.g., 5)
+
+Place weight → wait stable → press Enter
+
+After completion:
+
+config.yaml
+
+
+will contain:
+
+zero_offset: XXXXX
+calibration_factor: XXXXX
+
+Verification After Calibration
+
+Run:
+
+python3 weighing_system.py
+
+
+Check:
+
+No load → ~0.000 kg
+
+Known weight → correct value
+
+Remove weight → returns to zero
+
+If slight error exists, fine-tune:
+
+new_factor = old_factor × (measured / real_weight)
+
+5️⃣ Main Weighing Program (weighing_system.py)
+Objective
+
+This program:
+
+Reads raw HX711 data
+
+Converts to kg using stored calibration
+
+Applies Kalman filtering
+
+Displays weight on I2C LCD
+
+Runs continuously
+
+Weight Calculation
+weight = (raw - zero_offset) / calibration_factor
+
+Filtering
+
+A Kalman filter is applied to:
+
+Reduce noise
+
+Improve stability
+
+Provide smooth readings
+
+Maintain responsiveness
+
+Display
+
+The system shows:
+
+X.XXX kg
+
+
+Updated continuously.
+
+6️⃣ Important Issue Encountered (SMBus Error)
+Problem
+
+While running weighing_system.py, the following error occurred:
+
+NameError: name 'SMBus' is not defined
+
+Root Cause
+
+Inside:
+
+cradlex_env/lib/python3.13/site-packages/RPLCD/i2c.py
+
+
+The library internally attempted:
+
+self.bus = SMBus(self._port)
+
+
+However, the module was imported as:
+
+import smbus2 as smbus
+
+
+This means:
+
+SMBus was not directly defined
+
+Only smbus.SMBus existed
+
+Hence → NameError.
+
+Solution Applied
+
+Opened the file:
+
+nano cradlex_env/lib/python3.13/site-packages/RPLCD/i2c.py
+
+
+Searched for:
+
+SMBus(
+
+
+Replaced:
+
+self.bus = SMBus(self._port)
+
+
+With:
+
+self.bus = smbus.SMBus(self._port)
+
+
+Saved file.
+
+Result
+
+✔ SMBus error resolved
+✔ I2C LCD working inside virtual environment
+✔ No need for RPi.GPIO
+✔ Compatible with Raspberry Pi 5
+
+7️⃣ Raspberry Pi 5 Compatibility Notes
+
+RPi.GPIO was avoided due to compatibility issues.
+
+lgpio is used instead.
+
+I2C bus on Raspberry Pi 5 is always bus 1.
+
+Virtual environments require smbus2.
+
+8️⃣ Final System Overview
+
+The weighing module now provides:
+
+✔ Pi 5 compatible GPIO control (lgpio)
+✔ HX711 24-bit ADC reading
+✔ Proper calibration storage
+✔ Kalman-filtered stable readings
+✔ I2C LCD output
+✔ Fully virtual-environment compatible
+
+9️⃣ Future Improvements (Optional)
+
+Add tare button
+
+Add multi-point calibration
+
+Add temperature compensation
+
+Add data logging
+
+Add automatic startup (systemd service)
+
+🔚 Conclusion
+
+The weighing function is now:
+
+Stable
+
+Accurate
+
+Pi 5 compatible
+
+Professionally structured
+
+Fully reproducible from documentation
+
+This documentation ensures future maintenance and upgrades can be performed confidently.
+
+
+
                real embedded-to-server integration || integrating/ sending sensor's data to the cloud platform for Data collection purposes
 =================================================================================================================================
 
